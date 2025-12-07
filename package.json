@@ -1,0 +1,35 @@
+{
+  "name": "booking-system",
+  "version": "2.0.0",
+  "description": "Optimized multi-slot booking system with caching and performance enhancements",
+  "main": "api/admin.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required – using serverless functions'",
+    "deploy": "vercel --prod",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "booking",
+    "scheduling",
+    "google-sheets",
+    "vercel"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "google-spreadsheet": "4.1.0",
+    "googleapis": "^166.0.0"
+  },
+  "devDependencies": {
+    "vercel": "^33.7.1"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/urkey-ops/signup.git"
+  }
+}
