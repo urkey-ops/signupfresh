@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Book your time slots easily and manage your bookings online">
+    <meta name="theme-color" content="#3b82f6">
+    
+    <!-- ✅ UPDATED: CSP Policy - Allows API calls to any domain -->
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+                   font-src 'self' https://fonts.gstatic.com; 
+                   script-src 'self' 'unsafe-inline'; 
+                   connect-src *;">
+    
+    <title>Book a Slot - Online Booking System</title>
+
+    <!-- Fonts with better error handling -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" 
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" 
+          media="print" 
+          onload="this.media='all'; this.onload=null;"
+          onerror="this.onerror=null; console.warn('Failed to load Inter font');">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    </noscript>
+
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="user-style.css">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+    <!-- Inline critical styles -->
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+            margin: 0;
+            background: #f8fafc;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 1.5rem; 
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+        #loadingMsg {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: #3b82f6;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Book Your Slot</h1>
+    </header>
+
+    <main>
+        <!-- Lookup Section -->
+        <section class="card lookup-section card-compact" aria-labelledby="lookup-heading">
+            <h2 id="lookup-heading" class="visually-hidden">Lookup and Cancel Bookings</h2>
+            <button id="lookupToggle" 
+                    class="btn secondary-btn full-width-mobile" 
+                    aria-expanded="false"
+                    aria-controls="lookupContent">
+                🔍 Look Up / Cancel Booking
+            </button>
+            <div id="lookupContent" class="hidden" aria-hidden="true"> 
+                <p class="description" style="margin-top: 15px;">
+                    Enter your phone number to view and manage your bookings.
+                </p>
+                <div class="lookup-controls">
+                    <label for="lookupPhone" class="visually-hidden">Phone number for booking lookup</label>
+                    <input type="tel" 
+                           id="lookupPhone" 
+                           class="form-input lookup-input" 
+                           placeholder="Enter your phone number"
+                           maxlength="20"
+                           autocomplete="tel"
+                           inputmode="tel"
+                           aria-describedby="phone-hint">
+                    <span id="phone-hint" class="visually-hidden">
+                        Enter your 10-digit phone number to search for bookings
+                    </span>
+                    <button id="lookupSearchBtn" 
+                            class="btn secondary-btn" 
+                            aria-label="Search for bookings"
+                            type="button">
+                        Search
+                    </button>
+                </div>
+            </div>
+            <div id="userBookingsDisplay" 
+                 style="margin-top: 15px;" 
+                 role="region" 
+                 aria-live="polite" 
+                 aria-label="Your bookings">
+            </div>
+        </section>
+
+        <!-- Slots Section -->
+        <div id="loadingMsg" role="status" aria-live="polite">
+            <span class="spinner" aria-hidden="true"></span>
+            <span>Loading available slots...</span>
+        </div>
+        <div id="slotsDisplay" style="display:none;">
+            <p class="description">
+                Select one or more time slots. You can choose multiple slots across different dates. 
+                <strong>All times shown are in Eastern Time (ET)</strong>.
+            </p>
+            <div id="datesContainer" role="region" aria-label="Available time slots"></div>
+            <div style="height: 100px;" aria-hidden="true"></div> 
+        </div>
+        
+        <div id="floatingSignupBtnContainer" style="display:none;" role="region" aria-live="polite">
+            <button id="floatingSignupBtn" 
+                    class="btn primary-btn" 
+                    type="button"
+                    aria-label="Continue to sign up with selected slots">
+                Continue to Sign Up (0 Slots Selected)
+            </button>
+        </div>
+
+        <!-- Signup Form -->
+        <section id="signupSection" style="display:none;" class="card" aria-labelledby="signup-heading">
+            <h2 id="signup-heading">✍️ Enter Your Details</h2>
+            <div id="selectedSlotSummary" 
+                 class="selected-slots-summary" 
+                 role="region" 
+                 aria-label="Selected slots summary">
+            </div>
+            <form id="signupForm" novalidate>
+
+                <label for="nameInput" class="visually-hidden">Your Full Name (Required)</label>
+                <input type="text" 
+                       id="nameInput" 
+                       class="form-input" 
+                       placeholder="Your Full Name *" 
+                       required 
+                       maxlength="100" 
+                       autocomplete="name" 
+                       aria-required="true"
+                       aria-describedby="name-hint">
+                <span id="name-hint" class="visually-hidden">Enter your full name, at least 2 characters</span>
+
+                <label for="phoneInput" class="visually-hidden">Phone Number (Required)</label>
+                <input type="tel" 
+                       id="phoneInput" 
+                       class="form-input" 
+                       placeholder="Phone Number *" 
+                       required 
+                       maxlength="20" 
+                       autocomplete="tel" 
+                       inputmode="tel"
+                       aria-required="true"
+                       aria-describedby="phone-signup-hint">
+                <span id="phone-signup-hint" class="visually-hidden">Enter your 10-digit phone number</span>
+
+                <label for="emailInput" class="visually-hidden">Your Email Address (Optional)</label>
+                <input type="email" 
+                       id="emailInput" 
+                       class="form-input" 
+                       placeholder="Your Email Address (Optional)" 
+                       maxlength="254" 
+                       autocomplete="email"
+                       inputmode="email">
+
+                <label for="categorySelect" class="visually-hidden">Select Category (Required)</label>
+                <select id="categorySelect" 
+                        class="form-input" 
+                        required 
+                        aria-required="true">
+                    <option value="" disabled selected>-- Select Category * --</option>
+                    <option value="Bal">Bal</option>
+                    <option value="Balika">Balika</option>
+                    <option value="Kishore">Kishore</option>
+                    <option value="Kishori">Kishori</option>
+                    <option value="Yuvak">Yuvak</option>
+                    <option value="Yuvati">Yuvati</option>
+                    <option value="Premvati">Premvati</option>
+                    <option value="Sanyukta">Sanyukta</option>
+                </select>
+
+                <label for="notesInput" class="visually-hidden">Any special notes or comments (Optional)</label>
+                <textarea id="notesInput" 
+                          class="form-input" 
+                          placeholder="Any special notes or comments (Optional)" 
+                          rows="3" 
+                          maxlength="500"></textarea>
+
+                <div id="signupMsg" class="msg-box" role="alert" aria-live="assertive"></div>
+
+                <button type="submit" 
+                        id="submitSignupBtn" 
+                        class="btn primary-btn">
+                    Submit Signup
+                </button>
+                <button type="button" 
+                        id="backToSlotsBtn" 
+                        class="btn secondary-btn">
+                    ← Back to Slot Selection
+                </button>
+            </form>
+        </section>
+
+        <!-- Success Message -->
+        <section id="successMessage" style="display:none;" class="card" aria-labelledby="success-heading">
+            <h2 id="success-heading">🎉 Booking Confirmed!</h2>
+            <div id="confirmationDetails" role="status" aria-live="polite"></div>
+            <button id="resetPageBtn" 
+                    class="btn primary-btn"
+                    type="button">
+                Book Another Slot
+            </button>
+        </section>
+    </main>
+</div>
+
+<!-- Error handler for module loading -->
+<script type="module">
+    window.addEventListener('error', (e) => {
+        if (e.filename && e.filename.endsWith('.js')) {
+            console.error('Failed to load module:', e.filename);
+            const loadingMsg = document.getElementById('loadingMsg');
+            if (loadingMsg) {
+                loadingMsg.innerHTML = `
+                    <div class="msg-box error" role="alert">
+                        ⚠️ Failed to load application. Please refresh the page.
+                        <br><br>
+                        <button onclick="location.reload()" class="btn secondary-btn">
+                            🔄 Refresh Page
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }, true);
+</script>
+
+<!-- ✅ UPDATED: Load navigation module FIRST, then other modules -->
+<script type="module" src="config.js"></script>
+<script type="module" src="utils.js"></script>
+<script type="module" src="navigation.js"></script>
+<script type="module" src="slots.js"></script>
+<script type="module" src="signup-frontend.js"></script>
+<script type="module" src="lookup.js"></script>
+
+<!-- ✅ UPDATED: Initialize navigation after all modules load -->
+<script type="module">
+import { loadSlots } from './slots.js';
+import { lookupBookings } from './lookup.js';
+import { getStateSnapshot } from './config.js';
+import { initializeNavigation } from './navigation.js';
+
+// Initialize navigation system
+initializeNavigation();
+
+// Expose debug helpers
+if (typeof window !== 'undefined') {
+    window.__APP__ = {
+        loadSlots,
+        lookupBookings,
+        getState: getStateSnapshot
+    };
+    console.log('💡 Debug helpers available at window.__APP__');
+}
+</script>
+
+<!-- No-JavaScript Fallback -->
+<noscript>
+    <div style="padding: 20px; text-align: center; background: #fee; border: 2px solid #c00; margin: 20px; border-radius: 8px;">
+        <h2>⚠️ JavaScript Required</h2>
+        <p>This booking system requires JavaScript to function. Please enable JavaScript in your browser settings.</p>
+    </div>
+</noscript>
+
+</body>
+</html>
