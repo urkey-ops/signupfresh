@@ -1,3 +1,4 @@
+// FILE: slots.js
 // ================================================================================================
 // SLOTS.JS (UPDATED TO USE NAVIGATION MODULE)
 // ================================================================================================
@@ -485,7 +486,8 @@ window.addEventListener('beforeunload', (e) => {
     
     if (selectedSlots.length > 0 && !isOnSuccessPage && !isOnSignupForm) {
         e.preventDefault();
-        e.returnValue = 'You have selected slots but haven't completed your booking. Are you sure you want to leave?';
+        // FIXED: Switched to double quotes because the string contained an apostrophe (haven't)
+        e.returnValue = "You have selected slots but haven't completed your booking. Are you sure you want to leave?";
         return e.returnValue;
     }
 });
